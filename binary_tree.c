@@ -1,20 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
 
-#define INT_MAX_LEN 12	/* 2^32 = 4294967296, 最多10位数 */
+/* 2^32 = 4294967296, 最多10位数 */
+#define INT_MAX_LEN 12
+
+/* 输入的整数串分隔符 */
 #define SPLIT_CHAR ','
-
-#define FREE_P(x) \
-do { \
-	if (NULL != (x)) \
-	{ \
-		free(x); \
-		(x) = NULL; \
-	} \
-} while(0)
-
 
 typedef struct tree_node
 {
@@ -22,6 +14,27 @@ typedef struct tree_node
 	struct tree_node *left_child;
 	struct tree_node *right_child;
 } tree_node;
+
+/* 计算二叉树的深度，避免调用math.h中的log2 */
+int cal_tree_level(int node_num)
+{
+	int tmp = 0;
+	int level = 0;
+	
+	if (0 >= node_num)
+	{
+		return 0;
+	}
+
+	tmp = node_num;
+	while (tmp)
+	{
+		tmp /= 2;
+		level++;
+	}
+
+	return level;
+}
 
 tree_node *create_binary_tree(char *line, unsigned int *node_num)
 {
@@ -161,7 +174,6 @@ int print_tree_path(tree_node *tree_root, int current_sum, int expect_sum, int *
 
 int main(int argc, char **argv)
 {
-	ssize_t read = -1;
 	size_t len = 0;
 	
 	int expect_sum = 0;
@@ -178,43 +190,39 @@ int main(int argc, char **argv)
 	/* 从标准输入中获取期望值，以及二叉树整数串 */
 	if (EOF != scanf("%d", &expect_sum) && getchar())
 	{
-		read = getline(&line, &len, stdin);
-		if (-1 == read)
+		if (-1 == getline(&line, &len, stdin))
 		{
 			return -1;
 		}
 		else if (0 >= expect_sum)
 		{
-			printf("error\n");
-			FREE_P(line);
+			printf("error");
+
+			if (line)
+			{
+				free(line);
+			}
 			return -1;
 		}
 	}
 
 	/* 根据输入的数据，创建二叉树  */
 	binary_tree = create_binary_tree(line, &node_num);
-	FREE_P(line); /* 后续不再使用到line，故先释放空间 */
-	
 	if (NULL == binary_tree)
 	{
-		printf("error\n");	
+		printf("error");	
 		return -1;		
 	}
 
-	/* 计算二叉树的深度，申请合适的路径存储空间 */
-	if (0 == ((node_num + 1) & (node_num)))
-	{
-		level = (unsigned int)log2(node_num + 1);
-	}
-	else
-	{
-		level = (unsigned int)log2(node_num + 1) + 1;
-	}
+	/* 后续不再使用到line，故先释放空间 */
+	free(line);
 
+	/* 计算二叉树的深度，申请合适的路径存储空间 */
+	level = cal_tree_level(node_num);
 	path = (int *)malloc(sizeof(int) * level);
 	if (!path)
 	{
-		FREE_P(binary_tree);
+		free(binary_tree);
 		return -1;
 	}
 
@@ -222,11 +230,11 @@ int main(int argc, char **argv)
 	found = print_tree_path(&binary_tree[0], 0, expect_sum, path);
 	if (-1 == found)
 	{
-		printf("error\n");
+		printf("error");
 	}
 
-	FREE_P(binary_tree);
-	FREE_P(path);
+	free(binary_tree);
+	free(path);
 	return 0;
 }
 
